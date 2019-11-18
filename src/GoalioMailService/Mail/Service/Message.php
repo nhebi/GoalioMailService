@@ -60,7 +60,7 @@ class Message implements ServiceManagerAwareInterface {
      *            Values to use when the template is rendered
      * @return Message
      */
-    public function createHtmlMessage($from, $to, $subject, $nameOrModel, $values = array()) {
+    public function createHtmlMessage($from, $to, $subject, $nameOrModel, $values = array(), $replyTo = null) {
         $renderer = $this->getRenderer();
         $content = $renderer->render($nameOrModel, $values);
 
@@ -73,7 +73,7 @@ class Message implements ServiceManagerAwareInterface {
         $body = new MimeMessage();
         $body->setParts(array($text, $html));
 
-        return $this->getDefaultMessage($from, 'utf-8', $to, $subject, $body);
+        return $this->getDefaultMessage($from, 'utf-8', $to, $subject, $body, $replyTo);
     }
 
     /**
@@ -91,17 +91,17 @@ class Message implements ServiceManagerAwareInterface {
      *            Values to use when the template is rendered
      * @return Message
      */
-    public function createTextMessage($from, $to, $subject, $nameOrModel, $values = array()) {
+    public function createTextMessage($from, $to, $subject, $nameOrModel, $values = array(), $replyTo = null) {
         $renderer = $this->getRenderer();
         $content = $renderer->render($nameOrModel, $values);
 
-        return $this->getDefaultMessage($from, 'utf-8', $to, $subject, $content);
+        return $this->getDefaultMessage($from, 'utf-8', $to, $subject, $content, $replyTo);
     }
 
     /**
      * Send the message
      *
-     * @param Message $message
+     * @param MailMessage $message
      */
     public function send(MailMessage $message) {
         $this->getTransport()
@@ -113,13 +113,24 @@ class Message implements ServiceManagerAwareInterface {
      *
      * @return \Zend\View\Renderer\RendererInterface
      */
-    protected function getRenderer() {
+    public function getRenderer() {
         if($this->renderer === null) {
-            $this->renderer = $this->getServiceManager()
-                ->get('ViewRenderer');
+            $serviceManager = $this->getServiceManager();
+            $this->renderer = $serviceManager->get('goaliomailservice_renderer');
         }
 
         return $this->renderer;
+    }
+
+    /**
+     * @param \Zend\View\Renderer\RendererInterface $renderer
+     *
+     * @return $this
+     */
+    public function setRenderer($renderer) {
+        $this->renderer = $renderer;
+
+        return $this;
     }
 
     /**
@@ -127,7 +138,7 @@ class Message implements ServiceManagerAwareInterface {
      *
      * @return \Zend\Mail\Transport\TransportInterface
      */
-    protected function getTransport() {
+    public function getTransport() {
         if($this->transport === null) {
             $this->transport = $this->getServiceManager()
                 ->get('goaliomailservice_transport');
@@ -137,12 +148,32 @@ class Message implements ServiceManagerAwareInterface {
     }
 
     /**
+     * @param \Zend\Mail\Transport\TransportInterface $transport
      *
-     * @return Message
+     * @return $this
      */
-    protected function getDefaultMessage($from, $encoding, $to, $subject, $body) {
+    public function setTransport($transport) {
+        $this->transport = $transport;
+
+        return $this;
+    }
+
+    /**
+     * @param $from
+     * @param $encoding
+     * @param $to
+     * @param $subject
+     * @param $body
+     *
+     * @return MailMessage
+     */
+    protected function getDefaultMessage($from, $encoding, $to, $subject, $body, $replyTo = null) {
         if(is_string($from)) {
             $from = array('email' => $from, 'name' => $from);
+        }
+
+        if (is_string($replyTo)) {
+            $replyTo = array('email' => $replyTo, 'name' => $replyTo);
         }
 
         $message = new MailMessage();
@@ -151,6 +182,10 @@ class Message implements ServiceManagerAwareInterface {
             ->setSubject($subject)
             ->setBody($body)
             ->setTo($to);
+
+        if ($replyTo) {
+            $message->setReplyTo($replyTo['email'], $replyTo['name']);
+        }
 
         return $message;
     }
