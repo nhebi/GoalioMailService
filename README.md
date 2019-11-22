@@ -1,7 +1,7 @@
 GoalioMailService
 ================
 
-Version 0.0.2 Created by the goalio UG (haftungsbeschränkt)
+Version 1.2.0 Created by the goalio UG (haftungsbeschränkt)
 
 Introduction
 ------------
@@ -11,12 +11,17 @@ Provide configurable Mail Transport Factory  and simple messaging for ZF2
 Requirements
 ------------
 
-* [Zend Framework 2](https://github.com/zendframework/zf2) (latest master).
+* [Zend Framework 2](https://github.com/zendframework/zf2) (> 2.3.3).
 
 Features / Goals
 ----------------
 
 * Configure transport service for using Zend\Mail [COMPLETE]
+
+Changelog
+---------
+With ZF2.3 the Transport Factory changed. This made changes to the configuration in the goaliomailservice.global.php (and goaliomailservice.local.php) neccessary.
+I tried to check this in my own factory, but please be aware of this.
 
 Installation
 ------------
@@ -29,11 +34,11 @@ Installation
 
     ```json
     "require": {
-        "goalio/goalio-mailservice": "dev-master"
+        "goalio/goalio-mailservice": "1.*"
     }
     ```
 
-2. Now tell composer to download ZfcUser by running the command:
+2. Now tell composer to download GoalioMailService by running the command:
 
     ```bash
     $ php composer.phar update
@@ -53,21 +58,44 @@ Installation
         // ...
     );
     ```
-2. Copy the configuration files for local and global from 
+2. Copy the configuration files for local and global from
 `./vendor/goalio/goalio-mailservice/config/goaliomailservice.{local,global}.php.dist` to
-`./config/autoload/goaliomailservice.{local,global}.php` and change the values as desired. 
+`./config/autoload/goaliomailservice.{local,global}.php` and change the values as desired.
 
-3. If you are using the FileTransport (for development) create the directory `./data/mail`. 
+3. If you are using the FileTransport (for development) create the directory `./data/mail`.
 
 Usage
 -----
 
 	// The template used by the PhpRenderer to create the content of the mail
 	$viewTemplate = 'module/email/testmail';
-	
+
 	// The ViewModel variables to pass into the renderer
 	$value = array('foo' => 'bar');
 
 	$mailService = $this->getServiceManager()->get('goaliomailservice_message');
-	$message = $mailService->createTextMessage($from, $to, $subject, $viewTemplate, $values);	
+	$message = $mailService->createTextMessage($from, $to, $subject, $viewTemplate, $values);
 	$mailService->send($message);
+
+SMTP Setup
+----------
+
+GoalioMailService uses sendmail by default, but you can set it up to use SMTP by putting your information in the config file like this:
+
+    $settings = array(
+        'type' => 'Zend\Mail\Transport\Smtp',
+
+        'options_class' => 'Zend\Mail\Transport\SmtpOptions',
+
+        'options' => array(
+            'host' => 'smtp.gmail.com',
+            'connection_class' => 'login',
+            'connection_config' => array(
+                'ssl' => 'tls',
+                'username' => 'YOUR-USERNAME-HERE@gmail.com',
+                'password' => 'YOUR-PASSWORD-HERE'
+            ),
+            'port' => 587
+        )
+    );
+

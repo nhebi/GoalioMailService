@@ -6,26 +6,21 @@ use Zend\ServiceManager\FactoryInterface;
 
 class TransportFactory implements FactoryInterface {
 
-
     public function createService(ServiceLocatorInterface $serviceLocator) {
 
-        $config = $serviceLocator->get('Config');
+        /** @var TransportOptions $options */
+        $config = $serviceLocator->get('config');
+        $options = $config['goaliomailservice'];
 
-        $transportOptions = (isset($config['goaliomailservice']) ? $config['goaliomailservice'] : array());
-
-        if(!isset($transportOptions['transport_class'])) {
-            throw new Exception('Transport class has to be configured');
+        // Backwards compatibility with old config files
+        if(isset($options['transport_class']) && !isset($options['type'])) {
+            $options['type'] = $options['transport_class'];
         }
 
-        $transportClass = $transportOptions['transport_class'];
-        $transport = new $transportClass();
-
-        if(isset($transportOptions['options_class'])) {
-            $optionsClass = $transportOptions['options_class'];
-            $options = new $optionsClass($transportOptions['options']);
-            $transport->setOptions($options);
+        if(isset($options['transport_options']) && !isset($options['options'])) {
+            $options['options'] = $options['transport_options'];
         }
 
-        return $transport;
+        return \Zend\Mail\Transport\Factory::create($options);
     }
 }
